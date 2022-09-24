@@ -35,7 +35,7 @@ public:
 
     double unit_;  // 相邻激光射线的角度
 
-    const int occupied_thresh_ = 30;
+    const int occupied_thresh_ = 1;
 
     Mapping(int horizontal_resolution, 
             double lidar_max_range, 
@@ -92,7 +92,7 @@ std::pair<int, int> Mapping::worldToMap(double x, double y) {
     double ogm_resolution = width_ / floor_width_;
     double nx = std::ceil(x * ogm_resolution);
     double ny = std::ceil(y * ogm_resolution);
-    cout << "nx, ny: " << nx << " " << ny << endl;
+    // cout << "nx, ny: " << nx << " " << ny << endl;
     return std::make_pair(nx, ny);
 }
 
@@ -100,26 +100,28 @@ void Mapping::updateOccupancyCount(const float* range_image, double x, double y)
     
     for (int i = 0; i < horizontal_resolution_; ++i) {
         if (sign(range_image[i] - lidar_max_range_) == 0) continue;
-        worldToMap(x + range_image[i] * cos(-i * unit_),
+        auto [nx, ny] = worldToMap(x + range_image[i] * cos(-i * unit_),
                                     y + range_image[i] * sin(-i * unit_));
-        // if (nx >= 0 && nx < width_ && ny >= 0 && ny >= height_) {
-        //     cout << "nx, ny: " << nx << " " << ny << endl;
-        //     occupancy_count_[ny][nx] += 1;
-        // }
+        if (nx >= 0 && nx < width_ && ny >= 0 && ny < height_) {
+            // cout << "nx, ny: " << nx << " " << ny << endl;
+            occupancy_count_[ny][nx] += 1;
+        }
     }
 }
 
-// void Mapping::updateMap() {
-//     for (int i = 0; i < height_; ++i) {
-//         for (int j = 0; j < width_; ++j) {
-//             if (occupancy_count_[i][j] >= occupied_thresh_) {
-//                 occupancy_grid_map_[i][j] = 1;
-//             }
-//         }
-//     }
-//     for (int i = 0; i < height_; ++i) {
-//         memset(occupancy_count_[i], 0, sizeof(int) * width_);
-//     }
-// }
+void Mapping::updateMap() {
+    cout << "updating map.." << endl;
+    for (int i = 0; i < height_; ++i) {
+        for (int j = 0; j < width_; ++j) {
+            if (occupancy_count_[i][j] >= occupied_thresh_) {
+                cout << i << " " << j << "occupied" << endl;
+                occupancy_grid_map_[i][j] = 1;
+            }
+        }
+    }
+    // for (int i = 0; i < height_; ++i) {
+    //     memset(occupancy_count_[i], 0, sizeof(int) * width_);
+    // }
+}
 
 

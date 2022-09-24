@@ -5,6 +5,7 @@
 // Modifications:
 #include <string>
 #include <limits>
+#include <memory>
 // You may need to add webots include files such as
 // <webots/DistanceSensor.hpp>, <webots/Motor.hpp>, etc.
 // and/or to add some other includes
@@ -77,7 +78,7 @@ void setVelocity(int key, Keyboard keyboard, Motor* motors[]) {
 //   }
 // }
 
-void displayUpdate(Display* display, int** occupancy_grid_map, int width, int height) {
+void displayUpdate(Display* display, vector<vector<int>> occupancy_grid_map, int width, int height) {
   display->setColor(0xBB2222);
   for (int i = 0; i < height; ++i) {
     for (int j = 0; j < width; ++j) {
@@ -88,7 +89,8 @@ void displayUpdate(Display* display, int** occupancy_grid_map, int width, int he
   }
 }
 
-void mapping(Robot* robot) {
+// void mapping(Robot* robot) {
+  void mapping(std::unique_ptr<Robot>& robot) {
   cout << "mapping starts..." << endl;
   // keyboard
   Keyboard keyboard;
@@ -146,11 +148,11 @@ void mapping(Robot* robot) {
     range_image = lidar->getRangeImage();
     mapping.updateOccupancyCount(range_image, x, y);
     ++counter;
-    // if (counter == mapping_update_period) {
-    //   counter = 0;
-    //   mapping.updateMap();
-      // displayUpdate(display, mapping.occupancy_grid_map_, mapping.width_, mapping.height_);
-    // }
+    if (counter == mapping_update_period) {
+      counter = 0;
+      mapping.updateMap();
+      displayUpdate(display, mapping.occupancy_grid_map_, mapping.width_, mapping.height_);
+    }
 
     int key = keyboard.getKey();
     // cout << key << " pressed" << endl;
@@ -162,7 +164,8 @@ void mapping(Robot* robot) {
 
 int main(int argc, char **argv) {
   // create the Robot instance.
-  Robot *robot = new Robot();
+  // Robot *robot = new Robot();
+  auto robot = std::make_unique<Robot>();
 
   // get the time step of the current world.
   // int timeStep = (int)robot->getBasicTimeStep();
@@ -193,6 +196,6 @@ int main(int argc, char **argv) {
 
   // Enter here exit cleanup code.
 
-  delete robot;
+  // delete robot;
   return 0;
 }
