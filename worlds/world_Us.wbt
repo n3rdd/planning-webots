@@ -1,0 +1,285 @@
+#VRML_SIM R2021a utf8
+WorldInfo {
+  basicTimeStep 16
+  contactProperties [
+    ContactProperties {
+      material1 "ExteriorWheelMat"
+      coulombFriction [
+        1.8, 0, 0.2
+      ]
+      frictionRotation 0.965 0
+      bounce 0
+      forceDependentSlip [
+        10, 0
+      ]
+    }
+    ContactProperties {
+      material1 "InteriorWheelMat"
+      coulombFriction [
+        1.8, 0, 0.2
+      ]
+      frictionRotation -0.965 0
+      bounce 0
+      forceDependentSlip [
+        10, 0
+      ]
+    }
+  ]
+}
+Viewpoint {
+  orientation -0.23612000598143515 -0.31660307382102393 -0.9187000796899968 4.342976658841394
+  position 10.038277649489277 2.5756646573575708 14.82893922770425
+  followType "None"
+}
+TexturedBackground {
+}
+TexturedBackgroundLight {
+}
+RectangleArena {
+  rotation 1 0 0 1.57
+  floorSize 10 10
+  floorAppearance Parquetry {
+    type "light strip"
+  }
+}
+Wall {
+  translation -0.75 -2.64 -6.02383e-06
+  rotation 1 0 0 1.5708
+  name "wall2(2)"
+  size 7 0.5 0.1
+}
+Wall {
+  translation 1.34 -0.77 8.45023e-07
+  rotation 1 0 0 1.5708
+  name "wall2(3)"
+  size 7 0.5 0.1
+}
+Wall {
+  translation -0.83 0.92 7.05274e-06
+  rotation 1 0 0 1.5708
+  name "wall2(4)"
+  size 7 0.5 0.1
+}
+Wall {
+  translation 1.25 2.95 1.45096e-05
+  rotation 1 0 0 1.5708
+  name "wall2(1)"
+  size 7 0.5 0.1
+}
+DEF car Robot {
+  translation -4.526736924669406 -4.173089062607489 0.06150453358512962
+  rotation 0.0027321513446055363 0.0005642173673253138 0.9999961084963244 3.118925430295729
+  children [
+    Display {
+      width 100
+      height 100
+    }
+    InertialUnit {
+      name "yaw"
+      model "yaw"
+    }
+    DEF gps GPS {
+    }
+    Lidar {
+      translation 0 0 0.075
+      rotation 1 0 0 1.5708
+      horizontalResolution 64
+      numberOfLayers 1
+      spherical FALSE
+      type "rotating"
+      resolution 0.001
+      rotatingHead Solid {
+        rotation 0 1 0 1.7592918562079614
+        children [
+          Transform {
+            translation -0.055 0 0
+            children [
+              Shape {
+                appearance PBRAppearance {
+                }
+                geometry Sphere {
+                  radius 0.03
+                }
+              }
+            ]
+          }
+          Transform {
+            translation 0.055 0 0
+            children [
+              Shape {
+                appearance PBRAppearance {
+                }
+                geometry Sphere {
+                  radius 0.03
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+    HingeJoint {
+      jointParameters HingeJointParameters {
+        position 4102.519760495093
+        axis 0 1 0
+        anchor 0.1 -0.15 0
+      }
+      device [
+        DEF motor1 RotationalMotor {
+          name "motor1"
+          maxVelocity 100
+        }
+      ]
+      endPoint Solid {
+        translation 0.1 -0.13 0
+        rotation 0 1 0 5.882940214002286
+        children [
+          Shape {
+            appearance Appearance {
+              material Material {
+              }
+            }
+            geometry DEF lunzi Cylinder {
+              height 0.05
+              radius 0.06
+            }
+          }
+        ]
+        contactMaterial "InteriorWheelMat"
+        boundingObject USE lunzi
+        physics Physics {
+        }
+        linearVelocity 0.037061941253616164 0.17892022096848145 0.009136894909818442
+        angularVelocity 0.0028735101425783893 -0.08925014047726383 -0.5292407951385882
+      }
+    }
+    HingeJoint {
+      jointParameters HingeJointParameters {
+        position -3375.479630206673
+        axis 0 1 0
+        anchor 0.1 0.15 0
+      }
+      device [
+        DEF motor2 RotationalMotor {
+          name "motor2"
+          maxVelocity 100
+        }
+      ]
+      endPoint Solid {
+        translation 0.1 0.13 0
+        rotation 0 1 0 4.8740650559445875
+        children [
+          Shape {
+            appearance Appearance {
+              material Material {
+              }
+              texture ImageTexture {
+              }
+            }
+            geometry DEF lunzi Cylinder {
+              height 0.05
+              radius 0.06
+            }
+          }
+        ]
+        name "solid(1)"
+        contactMaterial "ExteriorWheelMat"
+        boundingObject USE lunzi
+        physics Physics {
+        }
+        linearVelocity -0.09973317614264274 0.18154737124387738 0.008346225845501662
+        angularVelocity 0.0029846165454905757 -0.08924811294362786 -0.5243915358625402
+      }
+    }
+    HingeJoint {
+      jointParameters HingeJointParameters {
+        position 4077.7612582066986
+        axis 0 1 0
+        anchor -0.1 0.15 0
+      }
+      device [
+        DEF motor3 RotationalMotor {
+          name "motor3"
+          maxVelocity 100
+        }
+      ]
+      endPoint Solid {
+        translation -0.1 0.13 -3.830076880224728e-40
+        rotation 0 1 0 6.257179154326547
+        children [
+          Shape {
+            appearance Appearance {
+              material Material {
+              }
+              texture ImageTexture {
+              }
+            }
+            geometry DEF lunzi Cylinder {
+              height 0.05
+              radius 0.06
+            }
+          }
+        ]
+        name "solid(2)"
+        contactMaterial "InteriorWheelMat"
+        boundingObject USE lunzi
+        physics Physics {
+        }
+        linearVelocity -0.10297447291331652 0.0763405806095672 0.02616041944853351
+        angularVelocity -0.001402923024177072 -0.0891843924486127 -0.5243621159676035
+      }
+    }
+    HingeJoint {
+      jointParameters HingeJointParameters {
+        position -3350.8402969254457
+        axis 0 1 0
+        anchor -0.1 -0.15 0
+      }
+      device [
+        DEF motor4 RotationalMotor {
+          name "motor4"
+          maxVelocity 100
+        }
+      ]
+      endPoint Solid {
+        translation -0.1 -0.13 -4.022473620195234e-27
+        rotation 0 1 0 4.380657108453451
+        children [
+          Shape {
+            appearance Appearance {
+              material Material {
+              }
+            }
+            geometry DEF lunzi Cylinder {
+              height 0.05
+              radius 0.06
+            }
+          }
+        ]
+        name "solid(3)"
+        contactMaterial "ExteriorWheelMat"
+        boundingObject USE lunzi
+        physics Physics {
+        }
+        linearVelocity 0.03366704997289095 0.07368711002231708 0.027081300856289507
+        angularVelocity -0.0018682392653268144 -0.08918537177333627 -0.5296566506442064
+      }
+    }
+    DEF Body Shape {
+      appearance PBRAppearance {
+        baseColor 0 0 0
+      }
+      geometry Box {
+        size 0.3 0.2 0.08
+      }
+    }
+  ]
+  name "car"
+  contactMaterial "InteriorWheelMat"
+  boundingObject USE Body
+  physics Physics {
+  }
+  controller "wasd"
+  linearVelocity -0.03289898496854785 0.1276223789343437 0.017656181396770824
+  angularVelocity 0.0004121255173423332 -0.08921209356668752 -0.5258861369728632
+}

@@ -1,0 +1,103 @@
+/* 
+* mapping
+*/
+class mapping {
+    public:
+        void add(int horizontal_resolution, range_image, );
+}
+void mapping::add(...) {
+    for (int i = 0; i < horizontal_resolution; ++i) {
+        if (sign(range_image[i] - max_range) == 0) {
+            continue;
+        }
+        auto [ny, nx] = world_to_map(
+            //x + range_image[i] * cos(st - i * unit),
+            //y + range_image[i] * sin(st - i * unit)
+            x + range_image[i] * cos(- i * unit),
+            y + range_image[i] * sin(- i * unit)
+        );
+
+        if (nx >= 0 && nx < n && ny >= 0 && ny < m) {
+            cnt[nx][ny]++;
+        }
+        
+    }
+}
+
+void mapping::updateMap(...) {
+    for (int i=0; i < height; ++i) {
+        for (int j=0; j < width; ++j) {
+            if (cnt[i][j] >= update_thresh) {
+                ogm[i][j] = 1;
+            }
+        }
+    }
+    // reset array cnt
+
+}
+
+int main() {
+    const int horizontal_resolution = lidar->getHorizontalResolution();
+
+    while(true) {
+        cout << "$ ";
+        cin >> cmd;
+        if (cmd == "mapping") {
+            mapping(robot);
+        } elif (cmd == "planning") {
+            planning(robot);
+        } elif (cmd == "exit") {
+            break;
+        }
+    }
+    delete robot;
+    return 0;
+}
+
+int mapping(const Robot* robot) {
+    // use keyboard to control the robot
+    while(robot->step(timeStep != -1)) {
+        key = getKey();
+        if (key == 'p') break;
+
+        elif (key == 'w') {
+            robot->setVelocity();
+        }
+        // elif...
+        // else set velocity to 0
+
+        double *pos = gps->getValues();
+        float *range_image = lidar->getRangeImage();
+        mapping.add(horizontal_resolution, range_image);
+
+        if (count == update_thresh) {
+            mapping.updateMap();
+            updateDisplay();
+        }
+        
+
+    }
+    mapping.saveMap();
+}
+
+/*
+* planning and control
+*/
+int main() {
+    //
+    // load the map
+    while(robot->step(timeStep != -1)) {
+        
+        double *pos = gps->getValues();
+        float *range_image = lidar->getRangeImage();
+        mapping.add(horizontal_resolution, range_image);
+
+        if (count == update_thresh) {
+            mapping.updateMap();
+            updateDisplay();
+        }
+        
+
+    }
+    mapping.saveMap();
+}

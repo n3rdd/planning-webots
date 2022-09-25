@@ -65,6 +65,13 @@ void setVelocity(int key, Keyboard keyboard, Motor* motors[]) {
         }
         break;
       }
+      case ' ': {
+        for (int i = 0; i < 4; ++i) {
+          cout << "space pressed" << endl;
+          motors[i]->setVelocity(0.);
+        }
+        break;
+      }
     }
 }
 
@@ -78,7 +85,7 @@ void setVelocity(int key, Keyboard keyboard, Motor* motors[]) {
 //   }
 // }
 
-void displayUpdate(Display* display, vector<vector<int>> occupancy_grid_map, int width, int height) {
+void updateMapDisplay(Display* display, vector<vector<int>> occupancy_grid_map, int width, int height) {
   display->setColor(0xBB2222);
   for (int i = 0; i < height; ++i) {
     for (int j = 0; j < width; ++j) {
@@ -87,6 +94,12 @@ void displayUpdate(Display* display, vector<vector<int>> occupancy_grid_map, int
       }
     }
   }
+}
+
+void updateRobotDisplay(Display* display, int gx, int gy) {
+  display->setColor(0x2222BB); 
+  display->drawPixel(gx, gy);
+
 }
 
 // void mapping(Robot* robot) {
@@ -126,9 +139,9 @@ void displayUpdate(Display* display, vector<vector<int>> occupancy_grid_map, int
     motors[i]->setVelocity(0.0);
   }
 
-  const float floor_width = 10;
-  const float floor_height = 10;
-  const int mapping_update_period = 15;
+  const float floor_width = 5;
+  const float floor_height = 5;
+  const int mapping_update_period = 16;
   int counter = 0;  // for mapping update
 
   Mapping mapping(
@@ -151,7 +164,9 @@ void displayUpdate(Display* display, vector<vector<int>> occupancy_grid_map, int
     if (counter == mapping_update_period) {
       counter = 0;
       mapping.updateMap();
-      displayUpdate(display, mapping.occupancy_grid_map_, mapping.width_, mapping.height_);
+      updateMapDisplay(display, mapping.occupancy_grid_map_, mapping.width_, mapping.height_);
+      auto [gx, gy] = mapping.worldToMap(x, y);
+      updateRobotDisplay(display, gx, gy);
     }
 
     int key = keyboard.getKey();
