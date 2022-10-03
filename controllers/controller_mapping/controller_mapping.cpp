@@ -6,6 +6,7 @@
 #include <string>
 #include <limits>
 #include <memory>
+#include <iostream>
 // You may need to add webots include files such as
 // <webots/DistanceSensor.hpp>, <webots/Motor.hpp>, etc.
 // and/or to add some other includes
@@ -17,6 +18,8 @@
 #include <webots/Lidar.hpp>
 
 #include <mapping.hpp>
+#include <planning.hpp>
+
 
 // All the webots classes are defined in the "webots" namespace
 using namespace webots;
@@ -97,9 +100,17 @@ void updateMapDisplay(Display* display, vector<vector<int>> occupancy_grid_map, 
 }
 
 void updateRobotDisplay(Display* display, int gx, int gy) {
-  display->setColor(0x2222BB); 
+  display->setColor(0x222222); 
   display->drawPixel(gx, gy);
 
+}
+
+void updatePathDisplay(Display* display, vector<Node> path) {
+  display->setColor(0x22BBBB);
+  for (auto& node: path) {
+    cout << node.x_ << " " << node.y_ << endl;
+    display->drawPixel(node.x_, node.y_);
+  }
 }
 
 // void mapping(Robot* robot) {
@@ -139,11 +150,12 @@ void updateRobotDisplay(Display* display, int gx, int gy) {
     motors[i]->setVelocity(0.0);
   }
 
-  const float floor_width = 5;
-  const float floor_height = 5;
+  const double floor_width = 5;
+  const double floor_height = 5;
   const int mapping_update_period = 16;
   int counter = 0;  // for mapping update
 
+  /* mapping */
   Mapping mapping(
       horizontal_resolution, 
       lidar_max_range,
@@ -153,27 +165,51 @@ void updateRobotDisplay(Display* display, int gx, int gy) {
       floor_width);
 
   int timeStep = (int)robot->getBasicTimeStep();
-  while (robot->step(timeStep) != -1) {
-    const double *pos = gps->getValues();
-    double x = pos[0], y = pos[1];
-    cout << "pos: " << x << ", " << y << endl;
+  // while (robot->step(timeStep) != -1) {
+  //   const double *pos = gps->getValues();
+  //   double x = pos[0], y = pos[1];
+  //   cout << "pos: " << x << ", " << y << endl;
     
-    range_image = lidar->getRangeImage();
-    mapping.updateOccupancyCount(range_image, x, y);
-    ++counter;
-    if (counter == mapping_update_period) {
-      counter = 0;
-      mapping.updateMap();
-      updateMapDisplay(display, mapping.occupancy_grid_map_, mapping.width_, mapping.height_);
-      auto [gx, gy] = mapping.worldToMap(x, y);
-      updateRobotDisplay(display, gx, gy);
-    }
+  //   range_image = lidar->getRangeImage();
+  //   mapping.updateOccupancyCount(range_image, x, y);
+  //   ++counter;
+  //   if (counter == mapping_update_period) {
+  //     counter = 0;
+  //     mapping.updateMap();
+  //     updateMapDisplay(display, mapping.occupancy_grid_map_, mapping.width_, mapping.height_);
+  //     auto [rx, ry] = mapping.worldToMap(x, y);
+  //     updateRobotDisplay(display, rx, ry);
+  //   }
 
-    int key = keyboard.getKey();
-    // cout << key << " pressed" << endl;
-    setVelocity(key, keyboard, motors);
+  //   int key = keyboard.getKey();
+  //   cout << key << " pressed" << endl;
+  //   if (key == 'Q') {
+  //     break;
+  //   }
+  //   setVelocity(key, keyboard, motors);
 
+  // }
+
+  /////////////////////////////////////////////////////////
+
+  /* planning */
+  auto [sx, sy] = mapping.worldToMap(2, -2);
+  auto [gx, gy] = mapping.worldToMap(-2, 2);
+  // cout << sx << " " << sy << endl;
+  // cout << gx << " " << gy << endl;
+  // Node start {sx, sy};
+  // Node goal{gx, gy};  // Node goal = Node(gx, gy);
+  AstarPlanner astar_planner(mapping.occupancy_grid_map_, display_width, display_height);
+  timeStep = (int)robot->getBasicTimeStep();
+  vector<Node> path;
+  while (robot->step(timeStep) != -1) {
+    display->setColor(0x999999);
+    display->drawPixel(sx, sy);
+    display->drawPixel(gx, gy);
+    path = astar_planner.plan(sx, sy, gx, gy);
+    updatePathDisplay(display, path);
   }
+
 
 }
 
@@ -190,10 +226,8 @@ int main(int argc, char **argv) {
   //  Motor *motor = robot->getMotor("motorname");
   //  DistanceSensor *ds = robot->getDistanceSensor("dsname");
   //  ds->enable(timeStep);
-  // Keyboard keyboard;
-  // keyboard.enable(100);
-
   
+
   mapping(robot);
   // Main loop:
   // - perform simulation steps until Webots is stopping the controller
