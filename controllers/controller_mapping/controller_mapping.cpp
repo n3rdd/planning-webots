@@ -105,16 +105,17 @@ void updateRobotDisplay(Display* display, int gx, int gy) {
 
 }
 
-void updatePathDisplay(Display* display, vector<Node> path) {
+// void updatePathDisplay(Display* display, vector<Node> path) {
+void updatePathDisplay(Display* display, vector<pair<int, int> > path) {
   display->setColor(0x22BBBB);
-  for (auto& node: path) {
-    cout << node.x_ << " " << node.y_ << endl;
-    display->drawPixel(node.x_, node.y_);
+  for (auto& pos: path) {
+    cout << pos.first << " " << pos.second << endl;
+    display->drawPixel(pos.first, pos.second);
   }
 }
 
-// void mapping(Robot* robot) {
-  void mapping(std::unique_ptr<Robot>& robot) {
+void mapping(Robot* robot) {
+  // void mapping(std::unique_ptr<Robot>& robot) {
   cout << "mapping starts..." << endl;
   // keyboard
   Keyboard keyboard;
@@ -165,30 +166,30 @@ void updatePathDisplay(Display* display, vector<Node> path) {
       floor_width);
 
   int timeStep = (int)robot->getBasicTimeStep();
-  // while (robot->step(timeStep) != -1) {
-  //   const double *pos = gps->getValues();
-  //   double x = pos[0], y = pos[1];
-  //   cout << "pos: " << x << ", " << y << endl;
+  while (robot->step(timeStep) != -1) {
+    const double *pos = gps->getValues();
+    double x = pos[0], y = pos[1];
+    cout << "pos: " << x << ", " << y << endl;
     
-  //   range_image = lidar->getRangeImage();
-  //   mapping.updateOccupancyCount(range_image, x, y);
-  //   ++counter;
-  //   if (counter == mapping_update_period) {
-  //     counter = 0;
-  //     mapping.updateMap();
-  //     updateMapDisplay(display, mapping.occupancy_grid_map_, mapping.width_, mapping.height_);
-  //     auto [rx, ry] = mapping.worldToMap(x, y);
-  //     updateRobotDisplay(display, rx, ry);
-  //   }
+    range_image = lidar->getRangeImage();
+    mapping.updateOccupancyCount(range_image, x, y);
+    ++counter;
+    if (counter == mapping_update_period) {
+      counter = 0;
+      mapping.updateMap();
+      updateMapDisplay(display, mapping.occupancy_grid_map_, mapping.width_, mapping.height_);
+      auto [rx, ry] = mapping.worldToMap(x, y);
+      updateRobotDisplay(display, rx, ry);
+    }
 
-  //   int key = keyboard.getKey();
-  //   cout << key << " pressed" << endl;
-  //   if (key == 'Q') {
-  //     break;
-  //   }
-  //   setVelocity(key, keyboard, motors);
+    int key = keyboard.getKey();
+    cout << key << " pressed" << endl;
+    if (key == 'Q') {
+      break;
+    }
+    setVelocity(key, keyboard, motors);
 
-  // }
+  }
 
   /////////////////////////////////////////////////////////
 
@@ -200,23 +201,25 @@ void updatePathDisplay(Display* display, vector<Node> path) {
   // Node start {sx, sy};
   // Node goal{gx, gy};  // Node goal = Node(gx, gy);
   AstarPlanner astar_planner(mapping.occupancy_grid_map_, display_width, display_height);
-  timeStep = (int)robot->getBasicTimeStep();
-  vector<Node> path;
-  while (robot->step(timeStep) != -1) {
+  // timeStep = (int)robot->getBasicTimeStep();
+  // vector<Node> path;
+  vector<pair<int, int> > path;
+  // while (robot->step(timeStep) != -1) {
     display->setColor(0x999999);
     display->drawPixel(sx, sy);
     display->drawPixel(gx, gy);
+
     path = astar_planner.plan(sx, sy, gx, gy);
     updatePathDisplay(display, path);
-  }
+  // }
 
 
 }
 
 int main(int argc, char **argv) {
   // create the Robot instance.
-  // Robot *robot = new Robot();
-  auto robot = std::make_unique<Robot>();
+  Robot *robot = new Robot();
+  // auto robot = std::make_unique<Robot>();
 
   // get the time step of the current world.
   // int timeStep = (int)robot->getBasicTimeStep();
@@ -245,6 +248,6 @@ int main(int argc, char **argv) {
 
   // Enter here exit cleanup code.
 
-  // delete robot;
+  delete robot;
   return 0;
 }

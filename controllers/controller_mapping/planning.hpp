@@ -8,24 +8,22 @@ using std::priority_queue, std::vector, std::pair;
 using std::cout, std::endl;
 
 const double MAX_COST = 9999.;
+const double START_COST = 0.1;
 
 class Node {
 public:
-    int x_, y_;
+    int x_;
+    int y_;
     double cost_;
-    Node* parent_;
+    // Node* parent_;
 
-    Node(int x, int y, double cost=MAX_COST): x_(x), y_(y) {
-        this->cost_ = cost;
-        this->parent_ = nullptr;
-    }
-
-    void setCost(double new_cost) {
-        cost_ = new_cost;
+    Node(int x, int y, double cost): x_(x), y_(y) {
+        cost_ = cost;
+        // this->parent_ = parent;
     }
 
     bool operator> (const Node& node2) const {
-        return this->cost_ > node2.cost_;
+        return cost_ > node2.cost_;
     }
 };
 
@@ -34,12 +32,23 @@ public:
     const int width_, height_;
     priority_queue<Node, vector<Node>, std::greater<Node> > pq_;
     vector<vector<int> > occupancy_grid_map_;
+    vector<vector<pair<int, int> > > parents_;
+    vector<vector<double> > costs_;
 
     AstarPlanner(vector<vector<int> > occupancy_grid_map, int width, int height): 
-        occupancy_grid_map_(occupancy_grid_map), width_(width), height_(height) {}
+        occupancy_grid_map_(occupancy_grid_map), width_(width), height_(height) {
+            cout << "init AstarPlanner instance..." << endl;
+            parents_ = vector<vector<pair<int, int> > >(
+                width_, vector<pair<int, int> >(height_, pair<int, int>(-1, -1))
+            );
+            costs_ = vector<vector<double> >(
+                width_, vector<double>(height_, MAX_COST)
+            );
+            cout << "init done ..." << endl;
+        }
     
     // vector<Node> plan(Node start, Node goal);
-    vector<Node> plan(int sx, int sy, int gx, int gy);
+    vector<pair<int, int> > plan(int sx, int sy, int gx, int gy);
     vector<Node> getNeighbors(Node node);
     double getCost(Node node1, Node node2);
     double getHeuristic(Node node, Node goal);
@@ -70,7 +79,7 @@ vector<Node> AstarPlanner::getNeighbors(Node node) {
         int nx = node.x_ + direction.first;
         int ny = node.y_ + direction.second;
         if (nx >= 0 && nx < width_ && ny >= 0 && ny < height_) {
-            neighbors.push_back(Node(nx, ny));
+            neighbors.push_back(Node(nx, ny, costs_[ny][nx]));
         }
     }
 
@@ -79,51 +88,63 @@ vector<Node> AstarPlanner::getNeighbors(Node node) {
 }
 
 // vector<Node> AstarPlanner::plan(Node start, Node goal) {
-vector<Node> AstarPlanner::plan(int sx, int sy, int gx, int gy) {
+vector<pair<int, int> > AstarPlanner::plan(int sx, int sy, int gx, int gy) {
     cout << "planning starts..." << endl;
-    Node goal(gx, gy);
-    Node start(sx, sy);
-    start.cost_ = 0.;
+    Node goal(gx, gy, MAX_COST);
+    Node start(sx, sy, START_COST);
+    costs_[sy][sx] = START_COST;
+    // // start.cost_ = 0.;
     
-    // const double start_cost = 1;
-    // start.cost_ = 0.;
+    // // const double start_cost = 1;
+    // // start.cost_ = 0.;
     cout << "start cost: " << start.cost_ << endl;
     cout << "goal cost: " << goal.cost_ << endl;
-    // start.setCost(0.);
+    // // start.setCost(0.);
     pq_.push(start);
-    Node node (-1, -1);  // 注意 neighbor.parent_ = &node;
-    vector<Node> neighbors;
-    double new_cost = 0.;
+    // pq_.push(Node(sx, sy, START_COST));
+    // // Node node (-1, -1);  // 注意 neighbor.parent_ = &node;
     while (!pq_.empty()) {
-        node = pq_.top();
+        Node node = pq_.top();
         pq_.pop();
         cout << "at node: " << node.x_ << " " << node.y_ << endl;
-        if (node.x_ == goal.x_ && node.y_ == goal.y_) {
+        if (node.x_ == gx && node.y_ == gy) {
             break;
         }
-        neighbors = getNeighbors(node);
+        vector<Node> neighbors = getNeighbors(node);
         for (Node neighbor: neighbors) {
             cout << "  at neighbor: " << neighbor.x_ << " " << neighbor.y_ << endl;
-            new_cost = getCost(neighbor, node) + node.cost_ + getHeuristic(neighbor, goal);
+            double new_cost = getCost(neighbor, node) + node.cost_ + getHeuristic(neighbor, goal);
             cout << "  new_cost: " << new_cost << endl;
             cout << "  old cost: " << neighbor.cost_ << endl;
-            // 此处有不明 bug 调不动.. 一旦改动 cost 该函数都不运行了
+    //         // 此处有不明 bug 调不动.. 一旦改动 cost 该函数都不运行
             if (new_cost < neighbor.cost_) {
-                neighbor.cost_ = new_cost;
-                neighbor.parent_ = &node;
-                cout << "  modified-> " << neighbor.cost_ << endl;
-                // push neighbor.neighbors to pq
-                pq_.push(neighbor);
+    //             // neighbor.cost_ = new_cost;
+    //             // neighbor.parent_ = &node;
+                parents_[neighbor.y_][neighbor.x_] = pair<int, int>(node.x_, node.y_);
+                costs_[neighbor.y_][neighbor.x_] = new_cost;
+                cout << "  modified-> " << new_cost << endl;
+    //             // push neighbor.neighbors to pq
+                pq_.push(Node(neighbor.x_, neighbor.y_, new_cost));
             }
         }
     }
-    // // get the path
-    vector<Node> path;
-    // Node* p_node = &goal;
-    // while (!p_node) {
-    //     path.push_back(*p_node);
-    //     p_node = p_node->parent_;
-    // }
+    // // // get the path
+    vector<pair<int, int> > path;
+    pair<int, int> next_pos (gx, gy);
+    // // Node* p_node = &goal;
+    // // while (!p_node) {
+    // //     path.push_back(*p_node);
+    // //     p_node = p_node->parent_;
+    // // }
+    cout << "printing the path.." << endl;
+    while (true) {
+        cout << next_pos.first << ", " << next_pos.second << endl;
+        if (next_pos.first == sx && next_pos.second == sy) {
+            break;
+        }
+        next_pos = parents_[next_pos.second][next_pos.first];
+        path.push_back(next_pos);
+    }
     return path;
 }
 

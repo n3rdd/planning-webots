@@ -97,10 +97,11 @@ std::pair<int, int> Mapping::worldToMap(double x, double y) {
     // double ogm_resolution = width_ / floor_width_;
     double ogm_resolution = 0.1; // 0.1m / 1pixel
     double nx = std::ceil(x / ogm_resolution);
-    double ny = std::ceil(y / ogm_resolution);
+    double ny = -std::ceil(y / ogm_resolution);
     cout << "nx, ny: " << nx << " " << ny << endl;
 
-    return std::make_pair(nx, ny);
+    // return std::make_pair(nx, ny);
+    return std::make_pair((int)nx, (int)ny);
 }
 
 void Mapping::updateOccupancyCount(const float*& range_image, double x, double y) {
