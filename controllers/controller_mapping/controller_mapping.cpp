@@ -169,7 +169,7 @@ void mapping(Robot* robot) {
   while (robot->step(timeStep) != -1) {
     const double *pos = gps->getValues();
     double x = pos[0], y = pos[1];
-    cout << "pos: " << x << ", " << y << endl;
+    // cout << "pos: " << x << ", " << y << endl;
     
     range_image = lidar->getRangeImage();
     mapping.updateOccupancyCount(range_image, x, y);
@@ -183,7 +183,7 @@ void mapping(Robot* robot) {
     }
 
     int key = keyboard.getKey();
-    cout << key << " pressed" << endl;
+    // cout << key << " pressed" << endl;
     if (key == 'Q') {
       break;
     }
@@ -194,10 +194,10 @@ void mapping(Robot* robot) {
   /////////////////////////////////////////////////////////
 
   /* planning */
-  auto [sx, sy] = mapping.worldToMap(2, -2);
-  auto [gx, gy] = mapping.worldToMap(-2, 2);
-  // cout << sx << " " << sy << endl;
-  // cout << gx << " " << gy << endl;
+  auto [sx, sy] = mapping.worldToMap(1.2, 2);
+  auto [gx, gy] = mapping.worldToMap(-2, -2);
+  cout << sx << " " << sy << endl;
+  cout << gx << " " << gy << endl;
   // Node start {sx, sy};
   // Node goal{gx, gy};  // Node goal = Node(gx, gy);
   AstarPlanner astar_planner(mapping.occupancy_grid_map_, display_width, display_height);

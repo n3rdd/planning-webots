@@ -92,14 +92,16 @@ public:
 
 std::pair<int, int> Mapping::worldToMap(double x, double y) {
     x += floor_width_;
-    y += floor_height_;
+    // y += floor_height_;
+    y -= floor_height_;
 
     // double ogm_resolution = width_ / floor_width_;
     double ogm_resolution = 0.1; // 0.1m / 1pixel
     double nx = std::ceil(x / ogm_resolution);
-    double ny = -std::ceil(y / ogm_resolution);
-    cout << "nx, ny: " << nx << " " << ny << endl;
-
+    // double ny = std::ceil(y / ogm_resolution);
+    double ny = - std::ceil(y / ogm_resolution);
+    // cout << "nx, ny: " << nx << " " << ny << endl;
+    ny = ny >= 0? ny: 0;
     // return std::make_pair(nx, ny);
     return std::make_pair((int)nx, (int)ny);
 }
@@ -107,13 +109,13 @@ std::pair<int, int> Mapping::worldToMap(double x, double y) {
 void Mapping::updateOccupancyCount(const float*& range_image, double x, double y) {
     
     for (int i = 0; i < horizontal_resolution_; ++i) {
-        cout << range_image[i] << "-" << lidar_max_range_ << endl;
+        // cout << range_image[i] << "-" << lidar_max_range_ << endl;
         if (sign(range_image[i] - lidar_max_range_) == 0) {
             continue;
         }
         
         auto [nx, ny] = worldToMap(x + range_image[i] * cos(st - i * unit_),
-                                    y + range_image[i] * sin(st -i * unit_));
+                                    y + range_image[i] * sin(st - i * unit_));
         if (nx >= 0 && nx < width_ && ny >= 0 && ny < height_) {
             // cout << "nx, ny: " << nx << " " << ny << endl;
             occupancy_count_[ny][nx] += 1;
@@ -126,7 +128,7 @@ void Mapping::updateMap() {
     for (int i = 0; i < height_; ++i) {
         for (int j = 0; j < width_; ++j) {
             if (occupancy_count_[i][j] >= occupied_thresh_) {
-                cout << i << " " << j << "occupied" << endl;
+                cout << j << " " << i << " occupied" << endl;
                 occupancy_grid_map_[i][j] = 1;
             }
         }
