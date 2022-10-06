@@ -269,6 +269,7 @@ void mapping(Robot* robot) {
       pid.setPoint(target_point);
 
       auto [cur_x, cur_y] = mapping.worldToMap(pos[0], pos[1]);
+      cout << "cur: " << cur_x << ", " << cur_y << endl;
       double x_control = pid.calcX(cur_x) + cur_x;
       double y_control = pid.calcY(cur_y) + cur_y;
 
@@ -288,22 +289,27 @@ void mapping(Robot* robot) {
       }
 
       int same_pos_count = 0;
-      for (int i = pos_for_stucked.size()-2; i >= 1; --i) {
-        if (pos_for_stucked[i].first == cur_x && pos_for_stucked[i].second == cur_y) {
-          same_pos_count += 1;
+      if (pos_for_stucked.size() >= 30) {
+          for (int i = pos_for_stucked.size()-2; i >= 1; --i) {
+            if ( pos_for_stucked[i].first == cur_x && pos_for_stucked[i].second == cur_y) {
+              same_pos_count += 1;
+          }
         }
       }
-      if (same_pos_count >= 15) {
+      
+      cout << "same_pos_count: " << same_pos_count << endl;
+      if (same_pos_count >= 25) {
         for (int i = 0; i < 4; ++i) {
             motors[i]->setVelocity(velocity_backward[i]);
         }
-      }
+        continue;
+      } 
 
       // 根据反馈量用键盘控制
       char key_x_control = getKeyX(x_control, cur_x);
       char key_y_control = getKeyY(y_control, cur_y);
 
-      cout << "cur: " << cur_x << ", " << cur_y << endl;
+      
       cout << "target_point: " << target_point.x_ << ", " << target_point.y_ << endl;
       cout << "key_x_control: " << key_x_control << endl;
       cout << "key_y_control: " << key_y_control << endl;
