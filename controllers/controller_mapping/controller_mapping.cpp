@@ -165,12 +165,15 @@ void mapping(Robot* robot) {
       floor_height,
       floor_width);
 
+  
   int timeStep = (int)robot->getBasicTimeStep();
   while (robot->step(timeStep) != -1) {
     const double *pos = gps->getValues();
     double x = pos[0], y = pos[1];
     // cout << "pos: " << x << ", " << y << endl;
-    
+    //////////////////////////
+    // mapping
+    //////////////////////////
     range_image = lidar->getRangeImage();
     mapping.updateOccupancyCount(range_image, x, y);
     ++counter;
@@ -184,34 +187,36 @@ void mapping(Robot* robot) {
 
     int key = keyboard.getKey();
     // cout << key << " pressed" << endl;
-    if (key == 'Q') {
-      break;
+
+    //////////////////////////
+    // planning
+    //////////////////////////
+    if (key == 'P') {
+        
+      // auto [sx, sy] = mapping.worldToMap(1.2, 2);
+      auto [sx, sy] = mapping.worldToMap(pos[0], pos[1]);
+      auto [gx, gy] = mapping.worldToMap(-2, -2);
+      cout << sx << " " << sy << endl;
+      cout << gx << " " << gy << endl;
+      // Node start {sx, sy};
+      // Node goal{gx, gy};  // Node goal = Node(gx, gy);
+      AstarPlanner astar_planner(mapping.occupancy_grid_map_, display_width, display_height);
+      // timeStep = (int)robot->getBasicTimeStep();
+      // vector<Node> path;
+      vector<pair<int, int> > path;
+      
+      display->setColor(0x999999);
+      display->drawPixel(sx, sy);
+      display->drawPixel(gx, gy);
+
+      path = astar_planner.plan(sx, sy, gx, gy);
+      updatePathDisplay(display, path);
     }
+    
     setVelocity(key, keyboard, motors);
 
   }
 
-  /////////////////////////////////////////////////////////
-
-  /* planning */
-  auto [sx, sy] = mapping.worldToMap(1.2, 2);
-  auto [gx, gy] = mapping.worldToMap(-2, -2);
-  cout << sx << " " << sy << endl;
-  cout << gx << " " << gy << endl;
-  // Node start {sx, sy};
-  // Node goal{gx, gy};  // Node goal = Node(gx, gy);
-  AstarPlanner astar_planner(mapping.occupancy_grid_map_, display_width, display_height);
-  // timeStep = (int)robot->getBasicTimeStep();
-  // vector<Node> path;
-  vector<pair<int, int> > path;
-  // while (robot->step(timeStep) != -1) {
-    display->setColor(0x999999);
-    display->drawPixel(sx, sy);
-    display->drawPixel(gx, gy);
-
-    path = astar_planner.plan(sx, sy, gx, gy);
-    updatePathDisplay(display, path);
-  // }
 
 
 }

@@ -66,7 +66,49 @@ x_control = pid.calcXControl(cur);
 y_control = pid.calcYControl(cur);
 
 // 根据反馈量用键盘控制
-key_control_x = getKeyX(x_control, curx);
-key_control_y = getKeyY(y_control, cury);
+key_x_control = getKeyX(x_control, curx);
+key_y_control = getKeyY(y_control, cury);
 
 // 根据键位设置电机速度
+switch(key_x_control) {
+    case 'W': {
+        for (int i = 0; i < 4; i++) {
+            speed_x[i] = speed_forward[i];
+        }
+        break;
+    }
+    case 'S': {
+        for (int i = 0; i < 4; i++) {
+            speed_x[i] = speed_backward[i];
+        }
+        break;
+    }
+    case ' ' : {
+        for (int i = 0; i < 4; i++) {
+            speed_x[i] = 0;
+        }
+    }
+}
+switch(key_y_control) {
+    case 'A': {
+        for (int i = 0; i < 4; i++) {
+            speed_y[i] = speed_leftward[i];
+        }
+        break;
+    }
+    case 'D': {
+        for (int i = 0; i < 4; i++) {
+            speed_y[i] = speed_rightward[i];
+        }
+        break;
+    }
+    case ' ' : {
+        for (int i = 0; i < 4; i++) {
+            speed_y[i] = 0;
+        }
+    }
+}
+for (int i = 0; i < 4; i++) {
+    motors[i]->setVelocity(speed_x[i] + speed_y[i]);
+}
+ 
