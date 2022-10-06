@@ -7,11 +7,14 @@
 #include <limits>
 #include <memory>
 #include <iostream>
+#include <cmath>
+#include <utility>
 // You may need to add webots include files such as
 // <webots/DistanceSensor.hpp>, <webots/Motor.hpp>, etc.
 // and/or to add some other includes
 #include <webots/Robot.hpp>
 #include <webots/Motor.hpp>
+#include <webots/InertialUnit.hpp>
 #include <webots/Keyboard.hpp>
 #include <webots/Display.hpp>
 #include <webots/GPS.hpp>
@@ -19,17 +22,19 @@
 
 #include <mapping.hpp>
 #include <planning.hpp>
-#include <control.hpp>
+#include <controller.hpp>
 
 
 // All the webots classes are defined in the "webots" namespace
 using namespace webots;
+using std::abs;
 using std::cin;
 using std::cout;
 using std::endl;
+using std::make_pair;
 
 const std::string motor_names[4] = {"motor1", "motor2", "motor3", "motor4"};
-const double v = 10;
+const double v = 7;
 const double v2 = 10;
 const double velocity_forward[4] = {v, v, v, v};
 const double velocity_backward[4] = {-v, -v, -v, -v};
@@ -37,6 +42,10 @@ const double velocity_leftward[4] = {v, -v, v, -v};
 const double velocity_rightward[4] = {-v, v, -v, v};
 const double velocity_leftcircle[4] = {v2, -v2, -v2, v2};
 const double velocity_rightcircle[4] = {-v2, v2, v2, -2};
+
+double velocity_x[4] = {0, 0, 0, 0};
+double velocity_y[4] = {0, 0, 0, 0};
+double velocity_circle[4] = {0, 0, 0, 0};
 
 
 void setVelocity(int key, Keyboard keyboard, Motor* motors[]) {
@@ -115,6 +124,18 @@ void updatePathDisplay(Display* display, vector<pair<int, int> > path) {
   }
 }
 
+char getKeyX(double x_control, int cur_x) {
+  double diff = x_control - cur_x;
+  if (abs(diff) <= 1)  return ' ';
+  return diff > 0? 'S': 'W';
+}
+
+char getKeyY(double y_control, int cur_y) {
+  double diff = y_control - cur_y;
+  if (abs(diff) <= 1)  return ' ';
+  return diff > 0? 'A': 'D';
+}
+
 void mapping(Robot* robot) {
   // void mapping(std::unique_ptr<Robot>& robot) {
   cout << "mapping starts..." << endl;
@@ -125,6 +146,9 @@ void mapping(Robot* robot) {
   // GPS
   GPS* gps = robot->getGPS("gps");
   gps->enable(1);
+
+  InertialUnit *inertial = robot->getInertialUnit("yaw");
+  inertial->enable(1);
 
   // LiDAR
   Lidar *lidar = robot->getLidar("lidar");
@@ -166,11 +190,21 @@ void mapping(Robot* robot) {
       floor_width);
 
   
-  int timeStep = (int)robot->getBasicTimeStep();
+  
+  const double front = 1.57;
   bool move_pid = false;
+  vector<pair<int, int> > path;
+  vector<pair<int, int> > pos_for_stucked;
+  int idx = -1; // path idx
+  PidController pid;
+  pid.init();
+
+  int timeStep = (int)robot->getBasicTimeStep();
   while (robot->step(timeStep) != -1) {
     const double *pos = gps->getValues();
     double x = pos[0], y = pos[1];
+    const double *yaw = inertial->getRollPitchYaw();
+  
     // cout << "pos: " << x << ", " << y << endl;
     //////////////////////////
     // mapping
@@ -192,7 +226,7 @@ void mapping(Robot* robot) {
     //////////////////////////
     // planning
     //////////////////////////
-    vector<pair<int, int> > path;
+    /* 找不到路径原因可能是起始点在 OGM 中为 1 */
     auto [gx, gy] = mapping.worldToMap(-2, -2);
     if (key == 'P') {
       // auto [sx, sy] = mapping.worldToMap(1.2, 2);
@@ -212,6 +246,8 @@ void mapping(Robot* robot) {
       display->drawPixel(gx, gy);
       path = astar_planner.plan(sx, sy, gx, gy);
       updatePathDisplay(display, path);
+      
+      idx = path.size() - 2;
     }
 
     //////////////////////////
@@ -224,67 +260,102 @@ void mapping(Robot* robot) {
     }
 
     if (move_pid) {
-      PidController pid;
-      pid.init();
-      int idx = path.size() - 1;
-      pid.setPoint(path[idx]);
+      cout << "move pid" << endl;
+
+      
+      
+      cout << "path size: " << path.size() << endl;
+      Point target_point(path[idx].first, path[idx].second);
+      pid.setPoint(target_point);
 
       auto [cur_x, cur_y] = mapping.worldToMap(pos[0], pos[1]);
       double x_control = pid.calcX(cur_x) + cur_x;
       double y_control = pid.calcY(cur_y) + cur_y;
 
+      pos_for_stucked.push_back(make_pair(cur_x, cur_y));
+
+      if (fabs(yaw[0] - front) >= 0.05) {
+        int dir = (yaw[0] < front && yaw[0] > -front ? -1 : 1);
+        for (int i = 0; i < 4; ++i) {
+            velocity_circle[i] = velocity_rightcircle[i] * dir;
+            motors[i]->setVelocity(velocity_circle[i]);
+        }
+        continue;
+      } else {
+        for (int i = 0; i < 4; ++i) {
+            motors[i]->setVelocity(0.);
+        }
+      }
+
+      int same_pos_count = 0;
+      for (int i = pos_for_stucked.size()-2; i >= 1; --i) {
+        if (pos_for_stucked[i].first == cur_x && pos_for_stucked[i].second == cur_y) {
+          same_pos_count += 1;
+        }
+      }
+      if (same_pos_count >= 15) {
+        for (int i = 0; i < 4; ++i) {
+            motors[i]->setVelocity(velocity_backward[i]);
+        }
+      }
+
       // 根据反馈量用键盘控制
-      key_x_control = getKeyX(x_control, curx);
-      key_y_control = getKeyY(y_control, cury);
+      char key_x_control = getKeyX(x_control, cur_x);
+      char key_y_control = getKeyY(y_control, cur_y);
+
+      cout << "cur: " << cur_x << ", " << cur_y << endl;
+      cout << "target_point: " << target_point.x_ << ", " << target_point.y_ << endl;
+      cout << "key_x_control: " << key_x_control << endl;
+      cout << "key_y_control: " << key_y_control << endl;
 
       // 根据键位设置电机速度
       switch(key_x_control) {
           case 'W': {
               for (int i = 0; i < 4; i++) {
-                  speed_x[i] = speed_forward[i];
+                  velocity_x[i] = velocity_forward[i];
               }
               break;
           }
           case 'S': {
               for (int i = 0; i < 4; i++) {
-                  speed_x[i] = speed_backward[i];
+                  velocity_x[i] = velocity_backward[i];
               }
               break;
           }
           case ' ' : {
               for (int i = 0; i < 4; i++) {
-                  speed_x[i] = 0;
+                  velocity_x[i] = 0;
               }
           }
       }
       switch(key_y_control) {
           case 'A': {
               for (int i = 0; i < 4; i++) {
-                  speed_y[i] = speed_leftward[i];
+                  velocity_y[i] = velocity_leftward[i];
               }
               break;
           }
           case 'D': {
               for (int i = 0; i < 4; i++) {
-                  speed_y[i] = speed_rightward[i];
+                  velocity_y[i] = velocity_rightward[i];
               }
               break;
           }
           case ' ' : {
               for (int i = 0; i < 4; i++) {
-                  speed_y[i] = 0;
+                  velocity_y[i] = 0;
               }
           }
       }
       for (int i = 0; i < 4; i++) {
-          motors[i]->setVelocity(speed_x[i] + speed_y[i]);
+          motors[i]->setVelocity(velocity_x[i] + velocity_y[i]);
       }
 
-      if ((abs(gy - cur_y) <= 3) && (abs(gx - cur_x) <= 3) && idx >= 0) {
+      if ((abs(target_point.y_ - cur_y) <= 3) && (abs(target_point.x_ - cur_x) <= 3) && idx >= 0) {
           idx -= 1;
       }
-      
-      if ((abs(gy - cur_y) <= 1) && (abs(gx - cur_x) <= 1)) {
+
+      if (((abs(gy - cur_y) <= 1) && (abs(gx - cur_x) <= 1)) || idx == 0) {
           cout << "****** Reach the goal *****" << endl;
           for (int i = 0; i < 4; i++) {
             motors[i]->setVelocity(0);
