@@ -19,6 +19,7 @@
 
 #include <mapping.hpp>
 #include <planning.hpp>
+#include <control.hpp>
 
 
 // All the webots classes are defined in the "webots" namespace
@@ -156,7 +157,6 @@ void mapping(Robot* robot) {
   const int mapping_update_period = 16;
   int counter = 0;  // for mapping update
 
-  /* mapping */
   Mapping mapping(
       horizontal_resolution, 
       lidar_max_range,
@@ -167,6 +167,7 @@ void mapping(Robot* robot) {
 
   
   int timeStep = (int)robot->getBasicTimeStep();
+  bool move_pid = false;
   while (robot->step(timeStep) != -1) {
     const double *pos = gps->getValues();
     double x = pos[0], y = pos[1];
@@ -191,11 +192,12 @@ void mapping(Robot* robot) {
     //////////////////////////
     // planning
     //////////////////////////
+    vector<pair<int, int> > path;
+    auto [gx, gy] = mapping.worldToMap(-2, -2);
     if (key == 'P') {
-        
       // auto [sx, sy] = mapping.worldToMap(1.2, 2);
       auto [sx, sy] = mapping.worldToMap(pos[0], pos[1]);
-      auto [gx, gy] = mapping.worldToMap(-2, -2);
+      // auto [gx, gy] = mapping.worldToMap(-2, -2);
       cout << sx << " " << sy << endl;
       cout << gx << " " << gy << endl;
       // Node start {sx, sy};
@@ -203,16 +205,96 @@ void mapping(Robot* robot) {
       AstarPlanner astar_planner(mapping.occupancy_grid_map_, display_width, display_height);
       // timeStep = (int)robot->getBasicTimeStep();
       // vector<Node> path;
-      vector<pair<int, int> > path;
+      
       
       display->setColor(0x999999);
       display->drawPixel(sx, sy);
       display->drawPixel(gx, gy);
-
       path = astar_planner.plan(sx, sy, gx, gy);
       updatePathDisplay(display, path);
     }
+
+    //////////////////////////
+    // control
+    //////////////////////////
+    if (key == 'O') {
+      move_pid = true;
+    } else if (key == 'L') {
+      move_pid = false;
+    }
+
+    if (move_pid) {
+      PidController pid;
+      pid.init();
+      int idx = path.size() - 1;
+      pid.setPoint(path[idx]);
+
+      auto [cur_x, cur_y] = mapping.worldToMap(pos[0], pos[1]);
+      double x_control = pid.calcX(cur_x) + cur_x;
+      double y_control = pid.calcY(cur_y) + cur_y;
+
+      // 根据反馈量用键盘控制
+      key_x_control = getKeyX(x_control, curx);
+      key_y_control = getKeyY(y_control, cury);
+
+      // 根据键位设置电机速度
+      switch(key_x_control) {
+          case 'W': {
+              for (int i = 0; i < 4; i++) {
+                  speed_x[i] = speed_forward[i];
+              }
+              break;
+          }
+          case 'S': {
+              for (int i = 0; i < 4; i++) {
+                  speed_x[i] = speed_backward[i];
+              }
+              break;
+          }
+          case ' ' : {
+              for (int i = 0; i < 4; i++) {
+                  speed_x[i] = 0;
+              }
+          }
+      }
+      switch(key_y_control) {
+          case 'A': {
+              for (int i = 0; i < 4; i++) {
+                  speed_y[i] = speed_leftward[i];
+              }
+              break;
+          }
+          case 'D': {
+              for (int i = 0; i < 4; i++) {
+                  speed_y[i] = speed_rightward[i];
+              }
+              break;
+          }
+          case ' ' : {
+              for (int i = 0; i < 4; i++) {
+                  speed_y[i] = 0;
+              }
+          }
+      }
+      for (int i = 0; i < 4; i++) {
+          motors[i]->setVelocity(speed_x[i] + speed_y[i]);
+      }
+
+      if ((abs(gy - cur_y) <= 3) && (abs(gx - cur_x) <= 3) && idx >= 0) {
+          idx -= 1;
+      }
+      
+      if ((abs(gy - cur_y) <= 1) && (abs(gx - cur_x) <= 1)) {
+          cout << "****** Reach the goal *****" << endl;
+          for (int i = 0; i < 4; i++) {
+            motors[i]->setVelocity(0);
+          }
+          move_pid = false;
+      }
+      
+    }
     
+    //// else move normally 
     setVelocity(key, keyboard, motors);
 
   }
