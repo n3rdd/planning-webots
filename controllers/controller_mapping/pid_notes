@@ -1,0 +1,72 @@
+class PidController {
+public:
+    target_point_;
+    sum_error_;
+    
+    double kp_, ki_, kd_;
+    prev_error_;  // error[-1]
+    prev2_error; // error[-2]
+
+    PidController() {
+        kp_ = ki_ = kd_ = 0;
+        target_point_.x = target_point.y = 0;
+        sum_error_.x = sum_error_.y = 0;
+        prev_error_.x = prev_error_.y = 0;
+        prev2_error_.x = prev2_error_.y = 0;
+    }
+
+};
+
+void PidController::setPoint() {
+    target_point_.x = target_point.x;
+    target_point_.y = target_point.y;
+}
+
+void PidController::init() {
+    kp_ = 0.97;
+    ki_ = 0.05;
+    kd_ = 50;
+    target_point_.x = target_point.y = 0;
+    sum_error_.x = sum_error_.y = 0;
+    prev_error_.x = prev_error_.y = 0;
+    prev2_error_.x = prev2_error_.y = 0;
+}
+
+double PidController::calcX() {
+    error_x = target_point.x - cur_point.x;
+    sum_error.x += error_x;
+    if (sum_error.x > 10)  sum_error.x = 10;
+    if (sum_error.x < -10)  sum_error.x = -10;
+    
+    diff_error_x = error_x - prev_error.x;
+    prev_error.x = error_x;
+    
+    return kp * error_x + ki * sum_error.x + kd * diff_error_x;
+}
+
+double PidController::calcY() {
+    error_x = target_point.x - cur_point.x;
+    sum_error.x += error_x;
+    if (sum_error.x > 10)  sum_error.x = 10;
+    if (sum_error.x < -10)  sum_error.x = -10;
+    
+    diff_error_x = error_x - prev_error.x;
+    prev_error.x = error_x;
+    
+    return kp * error_x + ki * sum_error.x + kd * diff_error_x;
+}
+
+cur_pos = worldToMap(pos[0], pos[1]);
+idx = 0;
+pid.init();
+pid.setPoint(path[idx]);
+
+// 计算 x, y 控制量
+x_control = pid.calcXControl(cur);
+y_control = pid.calcYControl(cur);
+
+// 根据反馈量用键盘控制
+key_control_x = getKeyX(x_control, curx);
+key_control_y = getKeyY(y_control, cury);
+
+// 根据键位设置电机速度
